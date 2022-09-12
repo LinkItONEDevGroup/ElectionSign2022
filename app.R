@@ -143,7 +143,7 @@ server <- function(input, output) {
       if(nrow(info_f)>=2){
         tbl_data <- info_f %>% group_by(formReply$lfran2q0o) %>% summarise(cnt = sum(cnt))
         names(tbl_data)[names(tbl_data) == 'value'] <- '候選人'
-        head(tbl_data[order(tbl_data$cnt,decreasing=T),], n = 20)
+        head(tbl_data[order(tbl_data$cnt,decreasing=T),], n = 100)
       }
     })
 }

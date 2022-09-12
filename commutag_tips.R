@@ -1,5 +1,6 @@
 #install.packages("xts") 
 # README: 紀錄開發相關技巧，一般為測試中
+setwd("/Users/wuulong/github/ElectionSign2022")
 info <- read.csv(file =  '/Users/wuulong/github/ElectionSign2022/info.csv')
 
 # convert string to numeric format
@@ -138,3 +139,64 @@ info_url$formReply[[1]]
 
 
 https://commutag.agawork.tw/user/list-name?id=5f16b3799da4ec1711d623b4
+
+library(readODS)
+# 大選區還沒資料清單
+county_cur<-unique(info_sim$大選區)
+#county_all<-c("桃園市","臺南市","臺中市","新北市","高雄市","臺北市","嘉義市","新竹市","基隆市","澎湖縣","花蓮縣","臺東縣","屏東縣","嘉義縣","雲林縣","南投縣","彰化縣","苗栗縣","新竹縣","宜蘭縣","金門縣","連江縣")
+county<-read_ods("2022地方選舉看板.ods",3)
+county_need<-setdiff(county$縣市,county_cur)
+
+
+# 子選區全名還沒資料清單
+ref<-read_ods("2022地方選舉看板.ods",5)
+ref$子選區全名<-paste(ref$大選區,ref$子選區,sep="-")
+info_sim$子選區全名<-paste(info_sim$大選區,info_sim$子選區,sep="-")
+#ref_f<-filter(ref, !is.na(ref$"誰（暱稱，可多人）"))
+target<-setdiff(unique(ref$子選區全名),unique(info_sim$子選區全名))
+
+sprintf("C:縣市還差 %.2f %%, D:鄉鎮還差 %.2f %%", length(county_need)/nrow(county)*100,length(target)/nrow(ref)*100)
+
+getname <- function(id) {
+  url_str=paste("https://commutag.agawork.tw/user/list-name?id=",id,sep="")
+  #paste("url:",url,sep="")
+  con <- url(url_str)
+  txt <- readLines(con)
+  commlist<-jsonlite::fromJSON(txt)
+  info_name<-commlist$data
+}
+cat(getname("5f16b3799da4ec1711d623b4")$name)
+
+uploader<-unique(info_sim$上傳者)
+uname<-sapply(uploader,getname)
+
+unique(info_sim$上傳者)
+
+village <- read.csv(file = paste(getwd(),"/village_cnt.csv",sep=""))
+county1=filter(village, village$COUNTYNAME =='新竹市' )
+town1=filter(county1, county1$TOWNNAME=='東區' )
+town1_have=filter(town1, town1$NUMPOINTS>0 )
+
+
+links <- read.csv(file =  '/Users/wuulong/github/ElectionSign2022/links.csv')
+s='張文興'
+filter(links,candidate==s)
+links[grep(s,links$candidate),]
+
+
+human <- read.csv(file =  '/Users/wuulong/Downloads/舊港島人口 - 整理過.csv')
+hts<-ts(human$人數, frequency=1, start=c(0,1))
+library("TTR")
+
+
+
+#
+int_result2 <- int_raw %>%  group_by('townfull'=paste(COUNTYNAME,TOWNNAME,sep="")) %>%  count()
+head(st_data(int_result2[order(int_result2$n,decreasing = T),]),n=20)
+
+#simplify geometry, 有用 可以從 510->96
+village_simple<- st_simplify(village_4326,0.01,dTolerance=100)
+system.time({int_raw2 <- st_intersection(x = village_simple, y = info_sim_sf_4326)})
+
+village_pop<-sp::merge(village_simple,population_keeps_nospace,by.x='fullname',by.y='fullname',all.x=T)
+
